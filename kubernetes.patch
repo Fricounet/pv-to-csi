@@ -1,0 +1,72 @@
+From b91689e1136a036a909f1cf9c4f972b6b3f36c0a Mon Sep 17 00:00:00 2001
+From: Antoine Gaillard <antoine.gaillard@datadoghq.com>
+Date: Thu, 31 Aug 2023 16:11:30 +0200
+Subject: [PATCH 1/2] Disable PV update validation
+
+---
+ pkg/apis/core/validation/validation.go | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/pkg/apis/core/validation/validation.go b/pkg/apis/core/validation/validation.go
+index 1668db832d8..6236b01b8a9 100644
+--- a/pkg/apis/core/validation/validation.go
++++ b/pkg/apis/core/validation/validation.go
+@@ -1999,16 +1999,16 @@ func ValidatePersistentVolumeUpdate(newPv, oldPv *core.PersistentVolume, opts Pe
+ 	}
+ 
+ 	// PersistentVolumeSource should be immutable after creation.
+-	if !apiequality.Semantic.DeepEqual(newPv.Spec.PersistentVolumeSource, oldPv.Spec.PersistentVolumeSource) {
+-		pvcSourceDiff := cmp.Diff(oldPv.Spec.PersistentVolumeSource, newPv.Spec.PersistentVolumeSource)
+-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "persistentvolumesource"), fmt.Sprintf("spec.persistentvolumesource is immutable after creation\n%v", pvcSourceDiff)))
+-	}
++	//if !apiequality.Semantic.DeepEqual(newPv.Spec.PersistentVolumeSource, oldPv.Spec.PersistentVolumeSource) {
++	//	pvcSourceDiff := cmp.Diff(oldPv.Spec.PersistentVolumeSource, newPv.Spec.PersistentVolumeSource)
++	//	allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "persistentvolumesource"), fmt.Sprintf("spec.persistentvolumesource is immutable after creation\n%v", pvcSourceDiff)))
++	//}
+ 	allErrs = append(allErrs, ValidateImmutableField(newPv.Spec.VolumeMode, oldPv.Spec.VolumeMode, field.NewPath("volumeMode"))...)
+ 
+ 	// Allow setting NodeAffinity if oldPv NodeAffinity was not set
+-	if oldPv.Spec.NodeAffinity != nil {
+-		allErrs = append(allErrs, ValidateImmutableField(newPv.Spec.NodeAffinity, oldPv.Spec.NodeAffinity, field.NewPath("nodeAffinity"))...)
+-	}
++	//if oldPv.Spec.NodeAffinity != nil {
++	//	allErrs = append(allErrs, ValidateImmutableField(newPv.Spec.NodeAffinity, oldPv.Spec.NodeAffinity, field.NewPath("nodeAffinity"))...)
++	//}
+ 
+ 	return allErrs
+ }
+-- 
+2.43.2
+
+
+From 89109afefd9eee5681c87134d68e81f836b92f52 Mon Sep 17 00:00:00 2001
+From: Baptiste Girard-Carrabin <baptiste.girardcarrabin@datadoghq.com>
+Date: Fri, 20 Oct 2023 10:33:38 +0200
+Subject: [PATCH 2/2] Remove registration in Kubernetes service
+
+---
+ pkg/controlplane/controller.go | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/pkg/controlplane/controller.go b/pkg/controlplane/controller.go
+index 6e0756883de..cdd64ea3356 100644
+--- a/pkg/controlplane/controller.go
++++ b/pkg/controlplane/controller.go
+@@ -270,10 +270,10 @@ func (c *Controller) UpdateKubernetesService(reconcile bool) error {
+ 	if err := c.CreateOrUpdateMasterServiceIfNeeded(kubernetesServiceName, c.ServiceIP, servicePorts, serviceType, reconcile); err != nil {
+ 		return err
+ 	}
+-	endpointPorts := createEndpointPortSpec(c.PublicServicePort, "https")
+-	if err := c.EndpointReconciler.ReconcileEndpoints(kubernetesServiceName, c.PublicIP, endpointPorts, reconcile); err != nil {
+-		return err
+-	}
++	// endpointPorts := createEndpointPortSpec(c.PublicServicePort, "https")
++	// if err := c.EndpointReconciler.ReconcileEndpoints(kubernetesServiceName, c.PublicIP, endpointPorts, reconcile); err != nil {
++	// 	return err
++	// }
+ 	return nil
+ }
+ 
+-- 
+2.43.2
+
