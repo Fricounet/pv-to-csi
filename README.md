@@ -6,6 +6,8 @@
 
 This migration rely on a patched apiserver to allow for in-place edits of the PV in the cluster. To deploy this patched apiserver, you __need__ to have access to the ETCD server of your cluster. For self-hosted clusters, this should be fairly easy. However, for managed clusters (AKS, EKS, GKE, ...), it depends on if the provider allows access to the ETCD (unlikely).
 
+Also, until <https://github.com/kubernetes/kubernetes/issues/121107> is resolved, a patch is needed in the `vendor` directory for `csi-translation-lib` with `azuredisk-csi-driver`. The patch is already present in the repository.
+
 ## Installation
 
 - clone the repo

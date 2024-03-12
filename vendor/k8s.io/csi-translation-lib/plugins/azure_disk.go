@@ -174,6 +174,10 @@ func (t *azureDiskCSITranslator) TranslateInTreePVToCSI(pv *v1.PersistentVolume)
 		csiSource.ReadOnly = *azureSource.ReadOnly
 	}
 
+	if err := translateTopologyFromInTreeToCSI(pv, AzureDiskTopologyKey); err != nil {
+		return nil, fmt.Errorf("failed to translate topology: %v", err)
+	}
+
 	pv.Spec.PersistentVolumeSource.AzureDisk = nil
 	pv.Spec.PersistentVolumeSource.CSI = csiSource
 
