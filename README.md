@@ -17,7 +17,7 @@ Also, until <https://github.com/kubernetes/kubernetes/issues/121107> is resolved
 ## Usage
 
 - configure the patched apiserver (see [patched-api-server](#patched-api-server)). Note the ip address or domain name of the patched apiserver
-- run the migration `pv-to-csi -context=my-cluster -patched-api=<ip or domain name> -dry-run` (remove `-dry-run` to run the migration for real)
+- run the migration `pv-to-csi -context=my-cluster -patched-api=<ip or domain name> -dry-run` (remove `-dry-run` to run the migration for real). For GCP, please follow [instructions](#gcp-specificities)
 - it is advised to run the migration with `-f=<some file>` to create a backup file that can be used with `-rollback` in case there is an issue with the migration
 
 ### Supported CSI drivers
@@ -25,10 +25,29 @@ Also, until <https://github.com/kubernetes/kubernetes/issues/121107> is resolved
 The script was tested against real clusters using the following CSI drivers:
 
 - [aws-ebs-csi-driver](https://github.com/kubernetes-sigs/aws-ebs-csi-driver)
-- [gcp-compute-persistent-disk-csi-driver](https://github.com/kubernetes-sigs/gcp-compute-persistent-disk-csi-driver)
+- [gcp-compute-persistent-disk-csi-driver](https://github.com/kubernetes-sigs/gcp-compute-persistent-disk-csi-driver) (GCP volumes have an issue, see [GCP specificities](#gcp-specificities))
 - [azuredisk-csi-driver](https://github.com/kubernetes-sigs/azuredisk-csi-driver)
 
 For other drivers, the compatibility was not tested.
+
+#### GCP specificities
+
+Volumes present in GCP cannot be migrated as easily as for other providers because of a difference in the volume handle between in-tree and CSI volumes (more details in this [kubecon talk](https://sched.co/1YeQl)). Because of this, the script cannot be run directly but should be deployed as part of an admission webhook watching for pod creation events. A complete code implementation for the webhook is not present at this time. However its expected behavior is described in the below flow diagram:
+
+```mermaid
+flowchart TD
+    A(Pod admission) --> B{Is it on GCP?} -- No --> Z((Allow pod))
+    B -- Yes --> C{Next volume?} -- No --> Z
+    C -- Yes --> D[Get 1 of the pod's volume]
+    D --> E{Volume is a PVC?} -- No --> C
+    E -- Yes --> F{PVC is bound?} -- No --> C
+    F -- Yes --> G[Find bound PV]
+    G --> H{PV is in-tree?} -- No --> C
+    H -- Yes --> I{Patched Apiserver is reachable?} -- No --> C
+    I -- Yes --> J{PV still has a VolumeAttachment?\n =is still attached to node?} -- No --> K[Translate PV]
+    J -- Yes --> Y((Deny pod))
+    K --> Z
+```
 
 ### Patched api server
 
